@@ -31,25 +31,28 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
 
     //private WebSocketSession session = null;
     private DNMsgProcessorInterface parser = null;
-    private Map<String,WSDNSession> wsdnsn_map = null;
-    private Map<String,WebSocketSession> wssn_map = null;
+    private Map<String, WSDNSession> wsdnsn_map = null;
+    private Map<String, WebSocketSession> wssn_map = null;
 
     /**
      * 初始化
      */
     public WSDNAccessPoint() {
         super();
-        wsdnsn_map = new HashMap<String,WSDNSession>();
-        wssn_map = new HashMap<String,WebSocketSession>();
+        wsdnsn_map = new HashMap<String, WSDNSession>();
+        wssn_map = new HashMap<String, WebSocketSession>();
         parser = new WSv1Processor();
-        
+
     }
-    
+
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        System.out.println("Debug in WSDNAccessPoint.java [Ln:50] : WebSocketSession session=" + session.toString()+" is colsed. stauts="+status);
-
-        super.afterConnectionClosed(session,status);
+        System.out.println("Debug in WSDNAccessPoint.java [Ln:50] : WebSocketSession session=" + session.toString() + " is colsed. stauts=" + status);
+        /**
+         * status.getCode() 1000客戶端異常斷掉 1001服務端主動斷掉 ？ 超時
+         *
+         */
+        super.afterConnectionClosed(session, status);
     }
 
     /**
@@ -123,7 +126,7 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
 
                     this.onLgin(msg, session, wsdnsn);
                 } catch (PacketException pe) {
-                        //登陆失败
+                    //登陆失败
                     Logger.getLogger(WSDNAccessPoint.class.getName()).warning("Failed to Login from "
                             + session.getRemoteAddress() + ":"
                             + pe.toString());
@@ -132,18 +135,18 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
             } else {
                 //已经登录
 
-                if (msg.getName().equalsIgnoreCase("heatbeat") && msg.getType() == 0) {
-                    this.onHeatbeat(msg, session,wsdnsn);
-                    
+                if (msg.getName().equalsIgnoreCase("heartbeat") && msg.getType() == 0) {
+                    this.onHeartbeat(msg, session, wsdnsn);
+
                     this.updateStatus(2, wsdnsn);
                 } else if (msg.getName().equalsIgnoreCase("logout") && msg.getType() == 0) {
-                    this.onLogout(msg, session,wsdnsn);
+                    this.onLogout(msg, session, wsdnsn);
                     this.updateStatus(3, wsdnsn);
                     this.close(session);
                 } else if (msg.getType() == 1) {
-                    this.onAck(msg, session,wsdnsn);
+                    this.onAck(msg, session, wsdnsn);
                 } else {
-                    this.onUnkownMsg(msg, session,wsdnsn);
+                    this.onUnkownMsg(msg, session, wsdnsn);
                     Logger.getLogger(WSDNAccessPoint.class.getName()).warning("Unsupported msg from "
                             + session.getRemoteAddress() + ":"
                             + msg.toString());
@@ -157,8 +160,8 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
         }
 
     }
-    
-      /**
+
+    /**
      *
      * @param type 1:login,2:heatbeat,3:logout,others:undefined
      * @param wsdnsn ,Websocket DN会话
@@ -238,7 +241,20 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
                     wsdnsn = new WSDNSession(login, session);
                     //放入map中
                     this.wsdnsn_map.put(session.toString(), wsdnsn);
-                    this.wssn_map.put(wsdnsn.getAssetid(),session);
+                    try {
+                        WebSocketSession oldSession = (WebSocketSession) wssn_map.get(wsdnsn.getAssetid());
+                        if (oldSession != null && oldSession.isOpen()) {
+                            List list1 = new ArrayList();
+                            list1.add(new Parameter("result", "23010"));
+                            list1.add(new Parameter("reason", "A new session is established"));
+                            DNMessage logout = new DNMessage("logout", "request", "MSG_FROM_SMARTVMS-1", list1);
+                            oldSession.sendMessage(new TextMessage(new String(parser.wrap(logout))));
+                            oldSession.close();
+                        }
+                    } catch (Exception e) {
+
+                    }
+                    this.wssn_map.put(wsdnsn.getAssetid(), session);
                     //this.isLogin = true;
                 }
             }
@@ -253,12 +269,12 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
      *
      * @param heartBeat
      */
-    private void onHeatbeat(DNMessage heartbeat, WebSocketSession session, WSDNSession wsdnsn) throws IOException, PacketException {
+    private void onHeartbeat(DNMessage heartbeat, WebSocketSession session, WSDNSession wsdnsn) throws IOException, PacketException {
 
         List list = new ArrayList();
         list.add(new Parameter("result", "0"));
         list.add(new Parameter("reason", "" + wsdnsn.getAssetid() + "@" + wsdnsn.getLast_msg()));
-        DNMessage ack = new DNMessage("heatbeat", "response", heartbeat.getTxid(), list);
+        DNMessage ack = new DNMessage("heartbeat", "response", heartbeat.getTxid(), list);
         session.sendMessage(new TextMessage(new String(parser.wrap(ack))));
         list.clear();
         wsdnsn.setSession(session);

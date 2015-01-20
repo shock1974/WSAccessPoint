@@ -40,7 +40,7 @@
     }
     function sendHeartbeat() {
         count++;
-        var msg ='{"name":"heatbeat","type":"request","txid":"'+count+'","params":[{"name":"8001","value":"abcdee"},{"name":"8002","value":"CFG29131312"}]}\n' ;
+        var msg ='{"name":"heartbeat","type":"request","txid":"'+count+'","params":[{"name":"8001","value":"abcdee"},{"name":"8002","value":"CFG29131312"}]}\n' ;
         if (ws != null) {
             ws.send(msg);
         }
