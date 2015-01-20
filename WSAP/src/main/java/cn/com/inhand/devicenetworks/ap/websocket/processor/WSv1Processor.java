@@ -39,8 +39,9 @@ public class WSv1Processor implements DNMsgProcessorInterface {
             throw new PacketException("msg txid cannot be null!");
         }
         jsonObj.put("txid", msg.getTxid());
-
-        jsonObj.element("params", msg.getParams());
+        JSONArray array = new JSONArray();
+        array.addAll(msg.getParams().values());
+        jsonObj.element("params", array);
         return jsonObj.toString().getBytes();
     }
 
@@ -69,6 +70,7 @@ public class WSv1Processor implements DNMsgProcessorInterface {
             return msg;
 
         } catch (Exception e) {
+            e.printStackTrace();
             throw new PacketException(e.getMessage());
         }
 

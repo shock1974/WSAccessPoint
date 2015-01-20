@@ -141,7 +141,6 @@
             <groupId>cn.com.inhand.ihtools</groupId>
             <artifactId>ihtools</artifactId>
             <version>1.0.0</version>
-            <scope>provided</scope>
         </dependency>
  
         <dependency>

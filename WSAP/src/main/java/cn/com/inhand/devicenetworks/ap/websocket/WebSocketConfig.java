@@ -29,6 +29,7 @@ public class WebSocketConfig extends WebMvcConfigurerAdapter implements WebSocke
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(myHandler(), "/websocket").addInterceptors(new HandshakeInterceptor());
+
     }
 
     @Override

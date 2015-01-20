@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Web Socket Demo</title>
+<script type="text/javascript">
+    var ws = null;
+    var count = 1;
+    
+    function startServer() {
+       // var url = "ws://localhost:8084/WebSocketDemo/WSAccessPoint";
+        var url = "ws://localhost:8080/WSAP/websocket";
+        if ('WebSocket' in window) {
+            ws = new WebSocket(url);
+        } else if ('MozWebSocket' in window) {
+            ws = new MozWebSocket(url);
+        } else {
+            alert('Your browser Unsupported WebSocket!');
+            return;
+        }
+
+        ws.onopen = function() {
+            document.getElementById("content").innerHTML += 'websocket open! Welcome!<br />';
+        };
+        ws.onmessage = function(event) {
+           //alert(event.data);
+            document.getElementById("content").innerHTML += event.data + '<br />';
+        };
+        ws.onclose = function() {
+            document.getElementById("content").innerHTML += 'websocket closed! Byebye!<br />';
+            ws = null;
+        };
+    }
+
+    function sendLogin() {
+        
+        var msg ='{"name":"login","type":"request","txid":"1","params":[{"name":"access_token","value":"f3e7af0971d23927f3998e1ca996f099"},{"name":"oid","value":"f3929liidw92329eds9ds9"},{"name":"asset_id","value":"'+document.getElementById("vmid").value+'"},{"name":"device_id","value":"239929e9sd992e99d9s9"},{"name":"login_type","value":"0"},{"name":"sn","value":"Inbox_ABCD121"},{"name":"firmware_version","value":"FIRMv.0.5"},{"name":"sysconfig_id","value":"CFG29131312"}]}\n' ;
+        if (ws != null) {
+            ws.send(msg);
+        }
+    }
+    function sendHeartbeat() {
+        count++;
+        var msg ='{"name":"heatbeat","type":"request","txid":"'+count+'","params":[{"name":"8001","value":"abcdee"},{"name":"8002","value":"CFG29131312"}]}\n' ;
+        if (ws != null) {
+            ws.send(msg);
+        }
+    }
+    function sendLogout() {
+        count++;
+        var msg ='{"name":"logout","type":"request","txid":"'+count+'","params":[{"name":"reason","value":"reboot after update firmware."}]}\n' ;
+        if (ws != null) {
+            ws.send(msg);
+        }
+
+    }
+</script>
+</head>
+<body onload="">
+    VMID:
+    <input type="text" id="vmid" value="ABCD1234"/>
+    Pls select a message type:
+    
+    <input type="button" onclick="startServer()" value="connect"/>
+    <input type="button" onclick="sendLogin()" value="Login"/>
+    <input type="button" onclick="sendHeartbeat()" value="Heartbeat"/>
+    <input type="button" onclick="sendLogout()" value="Logout"/>
+    <div id="content"></div>
+</html>
