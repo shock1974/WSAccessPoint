@@ -31,17 +31,15 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
 
     //private WebSocketSession session = null;
     private DNMsgProcessorInterface parser = null;
-    private Map<String, WSDNSession> wsdnsn_map = null;
-    private Map<String, WebSocketSession> wssn_map = null;
+    private ConnectionInfo cinfo = null;
 
     /**
      * 初始化
      */
-    public WSDNAccessPoint() {
+    public WSDNAccessPoint(ConnectionInfo info,DNMsgProcessorInterface parser) {
         super();
-        wsdnsn_map = new HashMap<String, WSDNSession>();
-        wssn_map = new HashMap<String, WebSocketSession>();
-        parser = new WSv1Processor();
+        this.cinfo = info;
+        this.parser = parser;
 
     }
 
@@ -52,6 +50,9 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
          * status.getCode() 1000客戶端異常斷掉 1001服務端主動斷掉 ？ 超時
          *
          */
+        
+        //----此处应该补充call 在线状态的api上报 该设备的websocket断开
+        
         super.afterConnectionClosed(session, status);
     }
 
@@ -70,16 +71,7 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
 
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        if (wsdnsn_map != null) {
-            wsdnsn_map.clear();
-        }
-        if (wssn_map != null) {
-            wssn_map.clear();
-        }
-        super.finalize();
-    }
+
 
     @Override
     protected void handleTextMessage(WebSocketSession session,
@@ -101,7 +93,7 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
             }
             DNMessage msg = parser.unwrap(message.getPayload().getBytes());
 
-            WSDNSession wsdnsn = (WSDNSession) this.wsdnsn_map.get(session.toString());
+            WSDNSession wsdnsn = this.cinfo.getWsdnsn(session.toString());
 
             if (wsdnsn == null) {
                 if (msg.getName().equals("login")) {
@@ -240,9 +232,9 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
                     list.clear();
                     wsdnsn = new WSDNSession(login, session);
                     //放入map中
-                    this.wsdnsn_map.put(session.toString(), wsdnsn);
+                    this.cinfo.putWsdnsn(session.toString(), wsdnsn);
                     try {
-                        WebSocketSession oldSession = (WebSocketSession) wssn_map.get(wsdnsn.getAssetid());
+                        WebSocketSession oldSession = this.cinfo.getWssn(wsdnsn.getAssetid());
                         if (oldSession != null && oldSession.isOpen()) {
                             List list1 = new ArrayList();
                             list1.add(new Parameter("result", "23010"));
@@ -254,7 +246,7 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
                     } catch (Exception e) {
 
                     }
-                    this.wssn_map.put(wsdnsn.getAssetid(), session);
+                    this.cinfo.putWssn(wsdnsn.getAssetid(), session);
                     //this.isLogin = true;
                 }
             }
@@ -307,8 +299,8 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
         wsdnsn.setSession(session);
         wsdnsn.setLast_msg(System.currentTimeMillis());
         //从map中去掉该session
-        this.wsdnsn_map.remove(session.toString());
-        this.wssn_map.remove(wsdnsn.getAssetid());
+        this.cinfo.getWsdnsn_map().remove(session.toString());
+        this.cinfo.getWssn_map().remove(wsdnsn.getAssetid());
         wsdnsn.setIsLogin(false);
         wsdnsn.setSession(null);
     }

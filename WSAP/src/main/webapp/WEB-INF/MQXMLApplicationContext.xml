@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit" 
+       xmlns:websocket="http://www.springframework.org/schema/websocket" 
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+    http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit-1.0.xsd http://www.springframework.org/schema/websocket http://www.springframework.org/schema/websocket/spring-websocket.xsd">
+    <!-- rabbit configuration *** beging *** -->   
+    <rabbit:connection-factory id="connectionFactory"   />
+
+    <rabbit:template id="amqpTemplate" connection-factory="connectionFactory" exchange="taskSmart1" routing-key="dn.key.taskSmart.add"/>
+	
+    <rabbit:admin connection-factory="connectionFactory" />
+	
+    <rabbit:queue name="dn.key.taskSmart1" />
+	
+    <rabbit:topic-exchange name="taskSmart1">
+        <rabbit:bindings>
+            <rabbit:binding queue="dn.key.taskSmart1" pattern="dn.key.taskSmart.add" />
+        </rabbit:bindings>
+    </rabbit:topic-exchange>
+	
+    <rabbit:listener-container connection-factory="connectionFactory">
+        <rabbit:listener ref="taskNotificationConsumer" method="listen" queue-names="dn.key.taskSmart1" />
+    </rabbit:listener-container>
+	
+    <bean id="taskNotificationConsumer" class="cn.com.inhand.devicenetworks.ap.mq.rabbitmq.TaskNotificationConsumer" >
+        <constructor-arg ref="connectionInfo"></constructor-arg>
+        <constructor-arg ref="msgParser"></constructor-arg>
+    </bean>
+    <!-- rabbit configuration *** end *** --> 
+
+
+    <!-- websocket configuration *** begin *** -->       
+    <websocket:handlers>
+        <websocket:mapping path="/websocket" handler="myHandler"/>
+        <websocket:handshake-interceptors>
+            <bean class="cn.com.inhand.devicenetworks.ap.websocket.HandshakeInterceptor"/>
+        </websocket:handshake-interceptors>
+    </websocket:handlers>
+
+    <bean id="myHandler" class="cn.com.inhand.devicenetworks.ap.websocket.WSDNAccessPoint">
+        <constructor-arg ref="connectionInfo"></constructor-arg>
+        <constructor-arg ref="msgParser"></constructor-arg>
+    </bean>
+    
+    <bean id="connectionInfo" class="cn.com.inhand.devicenetworks.ap.websocket.ConnectionInfo"/>
+    <bean id="msgParser" class="cn.com.inhand.devicenetworks.ap.websocket.processor.WSv1Processor"/>
+    
+    <!--For client side WebSocket configuration, 
+    you should use WebSocketContainerFactoryBean (XML) 
+    or ContainerProvider.getWebSocketContainer() (Java config). -->
+    <bean class="org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean">
+        <property name="maxTextMessageBufferSize" value="8192"/>
+        <property name="maxBinaryMessageBufferSize" value="8192"/>
+        <property name="AsyncSendTimeout" value="60000"/>
+        <property name="MaxSessionIdleTimeout" value="600000"/>
+    </bean>
+
+    <!-- websocket configuration *** end *** -->     
+  	
+</beans>
