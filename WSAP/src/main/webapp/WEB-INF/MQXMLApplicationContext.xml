@@ -8,7 +8,7 @@
     <!-- rabbit configuration *** beging *** -->   
     <rabbit:connection-factory id="connectionFactory"   />
 
-    <rabbit:template id="amqpTemplate" connection-factory="connectionFactory" exchange="taskSmart1" routing-key="dn.key.taskSmart.add"/>
+    <rabbit:template id="amqpTemplate" connection-factory="connectionFactory"/><!-- exchange="taskSmart1" routing-key="dn.key.taskSmart.add"/-->
 	
     <rabbit:admin connection-factory="connectionFactory" />
 	
@@ -20,14 +20,50 @@
         </rabbit:bindings>
     </rabbit:topic-exchange>
 	
-    <rabbit:listener-container connection-factory="connectionFactory">
-        <rabbit:listener ref="taskNotificationConsumer" method="listen" queue-names="dn.key.taskSmart1" />
-    </rabbit:listener-container>
+
 	
     <bean id="taskNotificationConsumer" class="cn.com.inhand.devicenetworks.ap.mq.rabbitmq.TaskNotificationConsumer" >
         <constructor-arg ref="connectionInfo"></constructor-arg>
         <constructor-arg ref="msgParser"></constructor-arg>
     </bean>
+ <!-- transcation notice -->   
+        <rabbit:queue name="smartvm.deliving.notice" />
+	
+    <rabbit:topic-exchange name="deliving_notice">
+        <rabbit:bindings>
+            <rabbit:binding queue="smartvm.deliving.notice" pattern="deliving.notice" />
+        </rabbit:bindings>
+    </rabbit:topic-exchange>	
+    <bean id="delivingNoticeConsumer" class="cn.com.inhand.devicenetworks.ap.mq.rabbitmq.DelivingNoticeConsumer" >
+        <constructor-arg ref="connectionInfo"></constructor-arg>
+        <constructor-arg ref="msgParser"></constructor-arg> 
+        <constructor-arg ref="delivingResultProducer"></constructor-arg>
+    </bean>
+    <!-- transcation ack -->   
+   <!--
+    <rabbit:queue name="smartvm.transaction.ack" auto-delete="true" durable="false" />
+	
+    <rabbit:topic-exchange name="transaction_ack">
+        <rabbit:bindings>
+            <rabbit:binding queue="smartvm.transcation.ack" pattern="online.pay.result" />
+        </rabbit:bindings>
+    </rabbit:topic-exchange>
+    -->
+    <bean id="delivingResultProducer"
+		class="cn.com.inhand.devicenetworks.ap.mq.rabbitmq.DelivingResultProducer">
+		<property name="rabbitTemplate">
+			<ref bean="amqpTemplate" />
+		</property>
+        <property name="exchange" value="deliving_result"></property>
+        <property name="routingKey" value="deliving.result"></property>
+	</bean>
+    
+    
+    <rabbit:listener-container connection-factory="connectionFactory">
+        <rabbit:listener ref="taskNotificationConsumer" method="listen" queue-names="dn.key.taskSmart1" />
+        <rabbit:listener ref="delivingNoticeConsumer" method="listen" queue-names="smartvm.deliving.notice" />
+    </rabbit:listener-container>
+
     <!-- rabbit configuration *** end *** --> 
 
 
@@ -41,7 +77,8 @@
 
     <bean id="myHandler" class="cn.com.inhand.devicenetworks.ap.websocket.WSDNAccessPoint">
         <constructor-arg ref="connectionInfo"></constructor-arg>
-        <constructor-arg ref="msgParser"></constructor-arg>
+        <constructor-arg ref="msgParser"></constructor-arg>        
+        <!--constructor-arg ref="delivingResultProducer"></constructor-arg-->
     </bean>
     
     <bean id="connectionInfo" class="cn.com.inhand.devicenetworks.ap.websocket.ConnectionInfo"/>

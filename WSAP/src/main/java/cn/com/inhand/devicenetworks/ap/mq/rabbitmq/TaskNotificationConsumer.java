@@ -47,8 +47,9 @@ public class TaskNotificationConsumer implements MessageListener, ChannelAwareMe
 
     @Override
     public void onMessage(Message message, Channel channel) throws Exception {
-        logger.info("recv a message:" + (new String(message.getBody())));
-        System.out.println("recv a message:" + (new String(message.getBody())));
+        logger.info("recv a message@onMessage(x,y):" + (new String(message.getBody())));
+        System.out.println("recv a message@onMessage(x,y):" + (new String(message.getBody())));
+        
         onMessage(message);
     }
 
@@ -56,8 +57,8 @@ public class TaskNotificationConsumer implements MessageListener, ChannelAwareMe
     public void onMessage(Message message) {
 // TODO Auto-generated method stub
 //在此接收消息
-        logger.info("recv a message:" + (new String(message.getBody())));
-        System.out.println("recv a message:" + (new String(message.getBody())));
+        logger.info("recv a message@onMessage(x):" + (new String(message.getBody())));
+        System.out.println("recv a message@onMessage(x):" + (new String(message.getBody())));
        listen((new String(message.getBody())));
     }
 
