@@ -32,18 +32,16 @@ public class DelivingNoticeConsumer implements MessageListener, ChannelAwareMess
 
     @Autowired
     AmqpTemplate template;
-    private final static Logger logger = Logger.getLogger("TranscationConsumer");
+    private final static Logger logger = Logger.getLogger("DelivingNoticeConsumer");
     //
     private DNMsgProcessorInterface parser = null;
     
-    private DelivingResultProducer producer = null;
 
     private ConnectionInfo cinfo = null;
 
-    public DelivingNoticeConsumer(ConnectionInfo info, DNMsgProcessorInterface parser,DelivingResultProducer producer) {
+    public DelivingNoticeConsumer(ConnectionInfo info, DNMsgProcessorInterface parser) {
         this.cinfo = info;
         this.parser = parser;
-        this.producer = producer;
         System.out.println("--~~~~~~~~~Debug in TranscationConsumer.contructor()~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~--");
     }
 
@@ -84,21 +82,21 @@ public class DelivingNoticeConsumer implements MessageListener, ChannelAwareMess
                     } else {
                         //因为在负载均衡模式下可能有多个Websocket AP，不能因为本AP没有这个设备就认为设备不在线，所以以下在多AP模式下不成立
                         //设备不在线
-                        List list = new ArrayList();
-                        list.add(new Parameter("result", "30005"));
-                        list.add(new Parameter("reason", "The asset is offline."));
-                        list.add(msg.getParameter("_id"));
-                        list.add(msg.getParameter("transcation_id"));
-                        list.add(msg.getParameter("asset_id"));
-                        DNMessage ack = new DNMessage(msg.getName(), "response", msg.getTxid(), list);
-
-                        MessageProperties properties =message.getMessageProperties();
-//                        properties.setCorrelationId(correlationId);
-        
-                        producer.sendMessage(new String(parser.wrap(msg)));
-                        logger.info("The asset[" + asset_id + "] is not online, return a offline ack to source. msg=" + ack.toString());
-                        System.out.println("The asset[" + asset_id + "] is not online, return a offline ack to source. msg=" + ack.toString());
-                         //需要往rabbitmq rpc中回写
+//                        List list = new ArrayList();
+//                        list.add(new Parameter("result", "30005"));
+//                        list.add(new Parameter("reason", "The asset is offline."));
+//                        list.add(msg.getParameter("_id"));
+//                        list.add(msg.getParameter("transcation_id"));
+//                        list.add(msg.getParameter("asset_id"));
+//                        DNMessage ack = new DNMessage(msg.getName(), "response", msg.getTxid(), list);
+//
+//                        MessageProperties properties =message.getMessageProperties();
+////                        properties.setCorrelationId(correlationId);
+//        
+//                        producer.sendMessage(new String(parser.wrap(msg)));
+//                        logger.info("The asset[" + asset_id + "] is not online, return a offline ack to source. msg=" + ack.toString());
+//                        System.out.println("The asset[" + asset_id + "] is not online, return a offline ack to source. msg=" + ack.toString());
+//                         //需要往rabbitmq rpc中回写
                         //--------------------------------
                         
                     }

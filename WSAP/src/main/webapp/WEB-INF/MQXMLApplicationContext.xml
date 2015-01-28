@@ -37,7 +37,6 @@
     <bean id="delivingNoticeConsumer" class="cn.com.inhand.devicenetworks.ap.mq.rabbitmq.DelivingNoticeConsumer" >
         <constructor-arg ref="connectionInfo"></constructor-arg>
         <constructor-arg ref="msgParser"></constructor-arg> 
-        <constructor-arg ref="delivingResultProducer"></constructor-arg>
     </bean>
     <!-- transcation ack -->   
    <!--
@@ -78,7 +77,7 @@
     <bean id="myHandler" class="cn.com.inhand.devicenetworks.ap.websocket.WSDNAccessPoint">
         <constructor-arg ref="connectionInfo"></constructor-arg>
         <constructor-arg ref="msgParser"></constructor-arg>        
-        <!--constructor-arg ref="delivingResultProducer"></constructor-arg-->
+        <constructor-arg ref="delivingResultProducer"></constructor-arg>
     </bean>
     
     <bean id="connectionInfo" class="cn.com.inhand.devicenetworks.ap.websocket.ConnectionInfo"/>

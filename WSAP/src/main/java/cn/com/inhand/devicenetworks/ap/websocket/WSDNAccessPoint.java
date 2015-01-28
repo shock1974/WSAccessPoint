@@ -5,6 +5,7 @@
  */
 package cn.com.inhand.devicenetworks.ap.websocket;
 
+import cn.com.inhand.devicenetworks.ap.mq.rabbitmq.DelivingResultProducer;
 import cn.com.inhand.devicenetworks.ap.websocket.processor.DNMessage;
 import cn.com.inhand.devicenetworks.ap.websocket.processor.DNMsgProcessorInterface;
 import cn.com.inhand.devicenetworks.ap.websocket.processor.Parameter;
@@ -32,14 +33,16 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
     //private WebSocketSession session = null;
     private DNMsgProcessorInterface parser = null;
     private ConnectionInfo cinfo = null;
+    private DelivingResultProducer producer = null;
 
     /**
      * 初始化
      */
-    public WSDNAccessPoint(ConnectionInfo info,DNMsgProcessorInterface parser) {
+    public WSDNAccessPoint(ConnectionInfo info,DNMsgProcessorInterface parser, DelivingResultProducer producer ) {
         super();
         this.cinfo = info;
         this.parser = parser;
+        this.producer=producer;
 
     }
 
