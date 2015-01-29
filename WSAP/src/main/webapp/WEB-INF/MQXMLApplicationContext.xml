@@ -94,5 +94,22 @@
     </bean>
 
     <!-- websocket configuration *** end *** -->     
+    <!--  rest api client ---- *** begin *** -->
+    <bean class="org.springframework.web.client.RestTemplate">
+		<property name="messageConverters">
+			<list>
+				<!--ref bean="mappingJackson2HttpMessageConverter" /-->
+				    
+				<bean id="formHttpMessageConverter" class="org.springframework.http.converter.FormHttpMessageConverter"></bean>
+               <bean id="stringHttpMessageConverter" class="org.springframework.http.converter.StringHttpMessageConverter"></bean>
+				<bean
+					class="org.springframework.http.converter.ByteArrayHttpMessageConverter" />
+				<bean
+					class="org.springframework.http.converter.StringHttpMessageConverter" />
+			</list>
+		</property>
+	</bean>
+
+    <!--  rest api client ---- *** end *** -->
   	
 </beans>

@@ -20,6 +20,8 @@ import org.springframework.web.socket.WebSocketSession;
 public class WSDNSession {
 
     private Logger logger = Logger.getLogger(WSDNSession.class.getName()+"["+this.assetid+"]");
+    private String key=null;
+    private String _id=null;
     private String assetid=null;
     private String sn=null;
     //private String current_txid=null;
@@ -86,6 +88,8 @@ public class WSDNSession {
     }
     
     public WSDNSession(DNMessage login,WebSocketSession session) {
+        this.key = login.getParameter("key").getValue();
+        this._id=login.getParameter("_id").getValue();
         this.assetid = login.getParameter("asset_id").getValue();
         this.sn = login.getParameter("sn").getValue();
         this.token = login.getParameter("access_token").getValue();
@@ -105,5 +109,21 @@ public class WSDNSession {
 //        logger.log(Level.INFO, "is starting ...");
 //    }
 //    
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public String getId() {
+        return _id;
+    }
+
+    public void setId(String _id) {
+        this._id = _id;
+    }
 
 }

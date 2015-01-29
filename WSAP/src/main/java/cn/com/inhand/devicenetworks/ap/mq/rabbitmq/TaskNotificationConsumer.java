@@ -65,27 +65,28 @@ public class TaskNotificationConsumer implements MessageListener, ChannelAwareMe
 
     
     public void listen(String message){
-         System.out.println("===============recv:"+message);  
+
          try{
              DNMessage msg = parser.unwrap(message.getBytes());
              if (msg != null){
-                 Parameter param = msg.getParameter("asset_id");
+                 Parameter param = msg.getParameter("_id");
                  if (param != null){
-                     String asset_id=param.getValue();
-                     WebSocketSession ws = this.cinfo.getWssn(asset_id);
+                     String _id=param.getValue();
+                     WebSocketSession ws = this.cinfo.getWssn(_id);
                      if (ws != null){
                          ws.sendMessage(new TextMessage(message));
                      }else{
-                         //设备不在线
-                         List list = new ArrayList();
-                         list.add(new Parameter("result","30005"));
-                         list.add(new Parameter("reason","The asset is offline."));
-                         DNMessage ack = new DNMessage(msg.getName(),"response",msg.getTxid(),list);
-                         
-                         logger.info("The asset["+asset_id+"] is not online, return a offline ack to source. msg="+ack.toString());
-                          System.out.println("The asset["+asset_id+"] is not online, return a offline ack to source. msg="+ack.toString());
-                         //需要往rabbitmq rpc中回写
-                         //--------------------------------
+                         //因为在负载均衡模式下可能有多个Websocket AP，不能因为本AP没有这个设备就认为设备不在线，所以以下在多AP模式下不成立
+                        //设备不在线
+//                         List list = new ArrayList();
+//                         list.add(new Parameter("result","30005"));
+//                         list.add(new Parameter("reason","The asset is offline."));
+//                         DNMessage ack = new DNMessage(msg.getName(),"response",msg.getTxid(),list);
+//                         
+//                         logger.info("The asset["+asset_id+"] is not online, return a offline ack to source. msg="+ack.toString());
+//                          System.out.println("The asset["+asset_id+"] is not online, return a offline ack to source. msg="+ack.toString());
+//                         //需要往rabbitmq rpc中回写
+//                         //--------------------------------
                      }
                  }else{
                      //是否返回出错信息？

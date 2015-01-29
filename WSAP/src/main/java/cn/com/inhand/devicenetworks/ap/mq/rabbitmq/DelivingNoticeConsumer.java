@@ -73,10 +73,10 @@ public class DelivingNoticeConsumer implements MessageListener, ChannelAwareMess
         try {
             DNMessage msg = parser.unwrap(str.getBytes());
             if (msg != null) {
-                Parameter param = msg.getParameter("asset_id");
+                Parameter param = msg.getParameter("_id");
                 if (param != null) {
-                    String asset_id = param.getValue();
-                    WebSocketSession ws = this.cinfo.getWssn(asset_id);
+                    String _id = param.getValue();
+                    WebSocketSession ws = this.cinfo.getWssn(_id);
                     if (ws != null) {
                         ws.sendMessage(new TextMessage(str));
                     } else {
