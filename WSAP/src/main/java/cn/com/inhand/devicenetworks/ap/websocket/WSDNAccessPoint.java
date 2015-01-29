@@ -12,6 +12,10 @@ import cn.com.inhand.devicenetworks.ap.websocket.processor.Parameter;
 import cn.com.inhand.devicenetworks.ap.websocket.processor.WSDNSession;
 import cn.com.inhand.devicenetworks.ap.websocket.processor.WSv1Processor;
 import cn.com.inhand.tools.exception.PacketException;
+import cn.com.inhand.common.dto.Error;
+import cn.com.inhand.devicenetworks.ap.websocket.packet.LoginResultPacket;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,8 +35,11 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
  * @author han
  */
 public class WSDNAccessPoint extends TextWebSocketHandler {
-    @Autowired 
+
+    @Autowired
     RestTemplate restTemplate;
+    @Autowired
+    ObjectMapper mapper;
     //private WebSocketSession session = null;
     private DNMsgProcessorInterface parser = null;
     private ConnectionInfo cinfo = null;
@@ -41,24 +48,48 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
     /**
      * 初始化
      */
-    public WSDNAccessPoint(ConnectionInfo info,DNMsgProcessorInterface parser, DelivingResultProducer producer ) {
+    public WSDNAccessPoint(ConnectionInfo info, DNMsgProcessorInterface parser, DelivingResultProducer producer) {
         super();
         this.cinfo = info;
         this.parser = parser;
-        this.producer=producer;
+        this.producer = producer;
 
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         System.out.println("Debug in WSDNAccessPoint.java [Ln:50] : WebSocketSession session=" + session.toString() + " is colsed. stauts=" + status);
-        /**
-         * status.getCode() 1000客戶端異常斷掉 1001服務端主動斷掉 ？ 超時
-         *
-         */
-        
+
         //----此处应该补充call 在线状态的api上报 该设备的websocket断开
-        
+        WSDNSession wsdnsn = this.cinfo.getWsdnsn(session.toString());
+        if (wsdnsn != null) {
+            wsdnsn.setSession(session);
+            wsdnsn.setLast_msg(System.currentTimeMillis());
+            this.cinfo.getWssn_map().remove(wsdnsn.getId());
+            wsdnsn.setIsLogin(false);
+            wsdnsn.setSession(null);
+            /**
+             * status.getCode() 1000客戶端異常斷掉 1001服務端主動斷掉 ？ 超時
+             *
+             */
+            int status_code = status.getCode();
+            if (status_code == 1000) {
+                if (wsdnsn.getAction() >= 3) {
+                    this.updateStatus(wsdnsn.getAction(), wsdnsn);
+                } else {
+                    this.updateStatus(202, wsdnsn);
+                }
+            } else {
+                if (wsdnsn.getAction() >= 3) {
+                    this.updateStatus(wsdnsn.getAction(), wsdnsn);
+                } else {
+                    this.updateStatus(202, wsdnsn);
+                }
+            }
+        }
+        //从map中去掉该session
+        this.cinfo.getWsdnsn_map().remove(session.toString());
+
         super.afterConnectionClosed(session, status);
     }
 
@@ -76,8 +107,6 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
         }
 
     }
-
-
 
     @Override
     protected void handleTextMessage(WebSocketSession session,
@@ -104,7 +133,7 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
             if (wsdnsn == null) {
                 if (msg.getName().equals("login")) {
                     try {
-                        this.onLgin(msg, session, wsdnsn);
+                        this.onLogin(msg, session, wsdnsn);
                     } catch (PacketException pe) {
                         //登陆失败
                         Logger.getLogger(WSDNAccessPoint.class.getName()).warning("Failed to Login from "
@@ -122,7 +151,7 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
                 wsdnsn.setSession(session);
                 try {
 
-                    this.onLgin(msg, session, wsdnsn);
+                    this.onLogin(msg, session, wsdnsn);
                 } catch (PacketException pe) {
                     //登陆失败
                     Logger.getLogger(WSDNAccessPoint.class.getName()).warning("Failed to Login from "
@@ -137,10 +166,9 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
                     this.onHeartbeat(msg, session, wsdnsn);
 
                     this.updateStatus(2, wsdnsn);
-                } else if (msg.getName().equalsIgnoreCase("logout") && msg.getType() == 0) {
+                } else if (msg.getName().equalsIgnoreCase("logout")) {//&& msg.getType() == 0) {
                     this.onLogout(msg, session, wsdnsn);
-                    this.updateStatus(3, wsdnsn);
-                    this.close(session);
+                    session.close();
                 } else if (msg.getType() == 1) {
                     this.onAck(msg, session, wsdnsn);
                 } else {
@@ -165,22 +193,35 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
      * @param wsdnsn ,Websocket DN会话
      * @return 执行结果
      */
-    private int updateStatus(int type, WSDNSession wsdnsn) {
-        if (type == 1) {
-            //调用认证API
-            if (false) {
-                //如果认证失败，则返回false
-                return 23007;
-            }
-            //认证成功
-            return 0;
-        } else if (type == 3) {
-            //退出APPI
+    private int updateStatus(int action, WSDNSession wsdnsn) {
+        Map map = new HashMap();
+        String _id = wsdnsn.getId();
+        String key = wsdnsn.getKey();
+        String token = wsdnsn.getToken();
+        if (_id == null || key == null) {
+            return 23007;
+        }
+        map.put("key", key);
+        map.put("action", 1);
 
+        String result = restTemplate.postForObject("http://mall.inhand.com.cn/api/asset_status/" + _id + "?access_token=" + token, null, String.class, map);
+
+        System.out.println("----Debug in WSDNAccessPoint.auth()[ln:209]:result:" + result);
+        map.clear();
+        if (!result.contains("error_code")) {
+            //认证成功
+            //取_id,asset_id
             return 0;
         } else {
-            //調用更新狀態，心跳api
-            return 0;
+            try {
+                Error error = mapper.readValue(result, Error.class);
+                System.out.println("----Debug in WSDNAccessPoint.auth()[ln:218]:Error=" + error.toString());
+
+                return error.getErrorCode();
+            } catch (IOException ex) {
+                Logger.getLogger(WSDNAccessPoint.class.getName()).log(Level.SEVERE, null, ex);
+                return -1;
+            }
         }
     }
 
@@ -195,23 +236,41 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
         String _id = login.getParameter("_id").getValue();
         String key = login.getParameter("key").getValue();
         String token = login.getParameter("tocken").getValue();
-        if (_id == null || key == null){
+        if (_id == null || key == null) {
             return 23007;
         }
-        map.put("key",key);
-        map.put("action",1);
-        
-        String result = restTemplate.postForObject("http://mall.inhand.com.cn/api/asset_status/"+_id+"?access_token="+token, null, String.class, map);
-        
+        map.put("key", key);
+        map.put("action", 1);
+
+        String result = restTemplate.postForObject("http://mall.inhand.com.cn/api/asset_status/" + _id + "?access_token=" + token, null, String.class, map);
+
+        System.out.println("----Debug in WSDNAccessPoint.auth()[ln:246]:result:" + result);
         map.clear();
-        if (true) {
-            //将认证成功后，API 服务端返回的asset_id，sn放入login.params中
-        }else{
-            //如果认证失败，则返回false
-            return 23007;
+        if (!result.contains("error_code")) {
+            try {
+                //认证成功
+                //取_id,asset_id
+                LoginResultPacket packet=mapper.readValue(result,LoginResultPacket.class);
+                login.getParams().put("_id",packet.getId());
+                login.getParams().put("asset_id", packet.getAssetId());
+                login.getParams().put("sn", packet.getSn());
+                System.out.println("----Debug in WSDNAccessPoint.auth()[ln:251]:_id=" +packet );
+                return 0;
+            } catch (IOException ex) {
+                Logger.getLogger(WSDNAccessPoint.class.getName()).log(Level.SEVERE, null, ex);
+                return -1;
+            }
+        } else {
+            try {
+                Error error = mapper.readValue(result, Error.class);
+                System.out.println("----Debug in WSDNAccessPoint.auth()[ln:256]:Error=" + error.toString());
+
+                return error.getErrorCode();
+            } catch (IOException ex) {
+                Logger.getLogger(WSDNAccessPoint.class.getName()).log(Level.SEVERE, null, ex);
+                return -1;
+            }
         }
-        //认证成功
-        return 0;
     }
 
     /**
@@ -219,7 +278,7 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
      *
      * @param login
      */
-    private void onLgin(DNMessage login, WebSocketSession session, WSDNSession wsdnsn) throws PacketException, IOException {
+    private void onLogin(DNMessage login, WebSocketSession session, WSDNSession wsdnsn) throws PacketException, IOException {
         if (login.getName().equals("login") && login.getType() == 0) {
             int result = auth(login);
             //调用登录API验证合法性
@@ -243,7 +302,7 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
                     session.sendMessage(new TextMessage(new String(parser.wrap(ack))));
                     list.clear();
 
-                    throw new PacketException("The oken is invalid!");
+                    throw new PacketException("The token is invalid!");
                 } else {
                     List list = new ArrayList();
                     list.add(new Parameter("result", "0"));
@@ -252,6 +311,19 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
                     session.sendMessage(new TextMessage(new String(parser.wrap(ack))));
                     list.clear();
                     wsdnsn = new WSDNSession(login, session);
+                    wsdnsn.setAction(1);
+                    wsdnsn.setId(login.getParameter("_id").getValue());
+                    wsdnsn.setIsLogin(true);
+                    wsdnsn.setAssetid(login.getParameter("asset_id").getValue());
+                    wsdnsn.setSn(login.getParameter("sn").getValue());
+                    wsdnsn.setToken(login.getParameter("access_token").getValue());
+                    
+                    wsdnsn.setKey(login.getParameter("key").getValue());
+                    wsdnsn.setId(login.getParameter("_id").getValue());
+                    wsdnsn.setConnection_time(System.currentTimeMillis());
+                    wsdnsn.setLast_msg(wsdnsn.getConnection_time());
+                    
+                   
                     //放入map中
                     this.cinfo.putWsdnsn(session.toString(), wsdnsn);
                     try {
@@ -292,6 +364,8 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
         list.clear();
         wsdnsn.setSession(session);
         wsdnsn.setLast_msg(System.currentTimeMillis());
+        wsdnsn.setAction(2);
+        this.updateStatus(2, wsdnsn);
     }
 
     /**
@@ -300,16 +374,19 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
      * @param ack
      */
     private void onAck(DNMessage ack, WebSocketSession session, WSDNSession wsdnsn) {
-        System.out.println("Debug in WSDNAccessPoint.java [Ln:165] : ack=" + ack.toString());
-        wsdnsn.setSession(session);
-        wsdnsn.setLast_msg(System.currentTimeMillis());
-        if (ack.getName().equalsIgnoreCase("deliver goods")){
+
+        if (ack.getName().equalsIgnoreCase("deliver goods")) {
             try {
                 this.producer.sendMessage(new String(parser.wrap(ack)));
             } catch (PacketException ex) {
                 Logger.getLogger(WSDNAccessPoint.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        System.out.println("Debug in WSDNAccessPoint.java [Ln:165] : ack=" + ack.toString());
+        wsdnsn.setSession(session);
+        wsdnsn.setLast_msg(System.currentTimeMillis());
+        wsdnsn.setAction(2);
+        this.updateStatus(2, wsdnsn);
     }
 
     /**
@@ -318,19 +395,35 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
      * @param logout
      */
     private void onLogout(DNMessage logout, WebSocketSession session, WSDNSession wsdnsn) throws IOException, PacketException {
-        List list = new ArrayList();
-        list.add(new Parameter("result", "0"));
-        list.add(new Parameter("reason", "" + wsdnsn.getAssetid() + "@" + wsdnsn.getLast_msg()));
-        DNMessage ack = new DNMessage("logout", "response", logout.getTxid(), list);
-        session.sendMessage(new TextMessage(new String(parser.wrap(ack))));
-        list.clear();
-        wsdnsn.setSession(session);
-        wsdnsn.setLast_msg(System.currentTimeMillis());
-        //从map中去掉该session
-        this.cinfo.getWsdnsn_map().remove(session.toString());
-        this.cinfo.getWssn_map().remove(wsdnsn.getId());
-        wsdnsn.setIsLogin(false);
-        wsdnsn.setSession(null);
+
+        if (logout.getType() != 0) {
+            //logout回应
+            wsdnsn.setAction(3);
+        } else {
+            //logout 请求
+            List list = new ArrayList();
+            int result = 100;
+            try {
+                result = Integer.parseInt(logout.getParameter("action").getValue());
+            } catch (Exception e) {
+
+            }
+            wsdnsn.setAction(result);
+
+            list.add(new Parameter("result", "0"));
+            list.add(new Parameter("reason", "" + wsdnsn.getAssetid() + "@" + wsdnsn.getLast_msg()));
+            DNMessage ack = new DNMessage("logout", "response", logout.getTxid(), list);
+
+            session.sendMessage(new TextMessage(new String(parser.wrap(ack))));
+            list.clear();
+        }
+//        wsdnsn.setSession(session);
+//        wsdnsn.setLast_msg(System.currentTimeMillis());
+//        //从map中去掉该session
+//        this.cinfo.getWsdnsn_map().remove(session.toString());
+//        this.cinfo.getWssn_map().remove(wsdnsn.getId());
+//        wsdnsn.setIsLogin(false);
+//        wsdnsn.setSession(null);
     }
 
     /**

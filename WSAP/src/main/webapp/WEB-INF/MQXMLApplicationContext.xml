@@ -98,7 +98,7 @@
     <bean class="org.springframework.web.client.RestTemplate">
 		<property name="messageConverters">
 			<list>
-				<!--ref bean="mappingJackson2HttpMessageConverter" /-->
+				<ref bean="mappingJackson2HttpMessageConverter" />
 				    
 				<bean id="formHttpMessageConverter" class="org.springframework.http.converter.FormHttpMessageConverter"></bean>
                <bean id="stringHttpMessageConverter" class="org.springframework.http.converter.StringHttpMessageConverter"></bean>
@@ -109,6 +109,14 @@
 			</list>
 		</property>
 	</bean>
+    
+    <bean id="mappingJackson2HttpMessageConverter"
+		class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+		<property name="objectMapper" ref="objectMapper" />
+	</bean>
+    <bean id="objectMapperFactory" class="cn.com.inhand.common.jackson.ObjectMapperFactory" />
+	<bean id="objectMapper" class="com.fasterxml.jackson.databind.ObjectMapper"
+		factory-bean="objectMapperFactory" factory-method="getMapper" />
 
     <!--  rest api client ---- *** end *** -->
   	

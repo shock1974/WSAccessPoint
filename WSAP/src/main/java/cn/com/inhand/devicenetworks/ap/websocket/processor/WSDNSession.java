@@ -27,9 +27,19 @@ public class WSDNSession {
     //private String current_txid=null;
     private boolean isLogin = false;
     private long connection_time = 0l;
+
+    public int getAction() {
+        return action;
+    }
+
+    public void setAction(int action) {
+        this.action = action;
+    }
     private long last_msg = 0l;
     private String token = null;
     private WebSocketSession session = null;
+    //状态类型。0:未登录;1：登录;2：维持心跳;101：升级固件（正常）退出;102：应用新配置（正常）退出; 103:维护（正常退出）; 201：超时断开; 202:设备端异常断开;其它：待定义
+    private int action = 0;
 
     public String getAssetid() {
         return assetid;
