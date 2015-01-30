@@ -21,7 +21,7 @@ public class WSDNSession {
 
     private Logger logger = Logger.getLogger(WSDNSession.class.getName()+"["+this.assetid+"]");
     private String key=null;
-    private String _id=null;
+    private String id=null;
     private String assetid=null;
     private String sn=null;
     //private String current_txid=null;
@@ -99,7 +99,7 @@ public class WSDNSession {
     
     public WSDNSession(DNMessage login,WebSocketSession session) {
         this.key = login.getParameter("key").getValue();
-        this._id=login.getParameter("_id").getValue();
+        this.id=login.getParameter("id").getValue();
         this.assetid = login.getParameter("asset_id").getValue();
         this.sn = login.getParameter("sn").getValue();
         this.token = login.getParameter("access_token").getValue();
@@ -129,11 +129,11 @@ public class WSDNSession {
     }
 
     public String getId() {
-        return _id;
+        return id;
     }
 
     public void setId(String _id) {
-        this._id = _id;
+        this.id = _id;
     }
 
 }

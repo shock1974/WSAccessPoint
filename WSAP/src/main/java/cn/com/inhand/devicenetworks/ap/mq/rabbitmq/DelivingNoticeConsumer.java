@@ -73,10 +73,10 @@ public class DelivingNoticeConsumer implements MessageListener, ChannelAwareMess
         try {
             DNMessage msg = parser.unwrap(str.getBytes());
             if (msg != null) {
-                Parameter param = msg.getParameter("_id");
+                Parameter param = msg.getParameter("id");
                 if (param != null) {
-                    String _id = param.getValue();
-                    WebSocketSession ws = this.cinfo.getWssn(_id);
+                    String id = param.getValue();
+                    WebSocketSession ws = this.cinfo.getWssn(id);
                     if (ws != null) {
                         ws.sendMessage(new TextMessage(str));
                     } else {
@@ -85,7 +85,7 @@ public class DelivingNoticeConsumer implements MessageListener, ChannelAwareMess
 //                        List list = new ArrayList();
 //                        list.add(new Parameter("result", "30005"));
 //                        list.add(new Parameter("reason", "The asset is offline."));
-//                        list.add(msg.getParameter("_id"));
+//                        list.add(msg.getParameter("id"));
 //                        list.add(msg.getParameter("transcation_id"));
 //                        list.add(msg.getParameter("asset_id"));
 //                        DNMessage ack = new DNMessage(msg.getName(), "response", msg.getTxid(), list);

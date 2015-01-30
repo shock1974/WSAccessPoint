@@ -11,15 +11,15 @@ package cn.com.inhand.devicenetworks.ap.websocket.packet;
  * @author han
  */
 public class LoginResultPacket {
-    private String _id;
+    private String id;
     private String assetId;
 
     public String getId() {
-        return _id;
+        return id;
     }
 
     public void setId(String _id) {
-        this._id = _id;
+        this.id = _id;
     }
 
     public String getAssetId() {
@@ -41,7 +41,7 @@ public class LoginResultPacket {
     
     @Override
     public String toString(){
-        return "_id="+_id+"\nasset_id="+assetId+"\nsn="+sn;
+        return "id="+id+"\nasset_id="+assetId+"\nsn="+sn;
     }
     
 }

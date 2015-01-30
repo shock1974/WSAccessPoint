@@ -69,10 +69,10 @@ public class TaskNotificationConsumer implements MessageListener, ChannelAwareMe
          try{
              DNMessage msg = parser.unwrap(message.getBytes());
              if (msg != null){
-                 Parameter param = msg.getParameter("_id");
+                 Parameter param = msg.getParameter("id");
                  if (param != null){
-                     String _id=param.getValue();
-                     WebSocketSession ws = this.cinfo.getWssn(_id);
+                     String id=param.getValue();
+                     WebSocketSession ws = this.cinfo.getWssn(id);
                      if (ws != null){
                          ws.sendMessage(new TextMessage(message));
                      }else{

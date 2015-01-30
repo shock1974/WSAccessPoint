@@ -44,16 +44,17 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
     private DNMsgProcessorInterface parser = null;
     private ConnectionInfo cinfo = null;
     private DelivingResultProducer producer = null;
+    private String server_addr = "mall.inhand.com.cn"
 
     /**
      * 初始化
      */
-    public WSDNAccessPoint(ConnectionInfo info, DNMsgProcessorInterface parser, DelivingResultProducer producer) {
+    public WSDNAccessPoint(ConnectionInfo info, DNMsgProcessorInterface parser, DelivingResultProducer producer,String host) {
         super();
         this.cinfo = info;
         this.parser = parser;
         this.producer = producer;
-
+        this.server_addr = host;
     }
 
     @Override
@@ -195,16 +196,16 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
      */
     private int updateStatus(int action, WSDNSession wsdnsn) {
         Map map = new HashMap();
-        String _id = wsdnsn.getId();
+        String id = wsdnsn.getId();
         String key = wsdnsn.getKey();
         String token = wsdnsn.getToken();
-        if (_id == null || key == null) {
+        if (id == null || key == null) {
             return 23007;
         }
         map.put("key", key);
         map.put("action", 1);
 
-        String result = restTemplate.postForObject("http://mall.inhand.com.cn/api/asset_status/" + _id + "?access_token=" + token, null, String.class, map);
+        String result = restTemplate.postForObject("http://"+server_addr+"/api/asset_status/" + id + "?access_token=" + token, null, String.class, map);
 
         System.out.println("----Debug in WSDNAccessPoint.auth()[ln:209]:result:" + result);
         map.clear();
@@ -233,16 +234,16 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
      */
     private int auth(DNMessage login) {
         Map map = new HashMap();
-        String _id = login.getParameter("_id").getValue();
+        String id = login.getParameter("id").getValue();
         String key = login.getParameter("key").getValue();
         String token = login.getParameter("tocken").getValue();
-        if (_id == null || key == null) {
+        if (id == null || key == null) {
             return 23007;
         }
         map.put("key", key);
         map.put("action", 1);
 
-        String result = restTemplate.postForObject("http://mall.inhand.com.cn/api/asset_status/" + _id + "?access_token=" + token, null, String.class, map);
+        String result = restTemplate.postForObject("http://"+server_addr+"/api/asset_status/" + id + "?access_token=" + token, null, String.class, map);
 
         System.out.println("----Debug in WSDNAccessPoint.auth()[ln:246]:result:" + result);
         map.clear();
@@ -251,10 +252,10 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
                 //认证成功
                 //取_id,asset_id
                 LoginResultPacket packet=mapper.readValue(result,LoginResultPacket.class);
-                login.getParams().put("_id",packet.getId());
+                login.getParams().put("id",packet.getId());
                 login.getParams().put("asset_id", packet.getAssetId());
                 login.getParams().put("sn", packet.getSn());
-                System.out.println("----Debug in WSDNAccessPoint.auth()[ln:251]:_id=" +packet );
+                System.out.println("----Debug in WSDNAccessPoint.auth()[ln:251]:id=" +packet );
                 return 0;
             } catch (IOException ex) {
                 Logger.getLogger(WSDNAccessPoint.class.getName()).log(Level.SEVERE, null, ex);
@@ -293,7 +294,7 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
                 throw new PacketException("Failed to Login!");
             } else {
                 //for debug
-                if (login.getParameter("_id").getValue().equals("1111")) {
+                if (login.getParameter("id").getValue().equals("1111")) {
 
                     List list = new ArrayList();
                     list.add(new Parameter("result", "21336"));
@@ -312,14 +313,14 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
                     list.clear();
                     wsdnsn = new WSDNSession(login, session);
                     wsdnsn.setAction(1);
-                    wsdnsn.setId(login.getParameter("_id").getValue());
+                    wsdnsn.setId(login.getParameter("id").getValue());
                     wsdnsn.setIsLogin(true);
                     wsdnsn.setAssetid(login.getParameter("asset_id").getValue());
                     wsdnsn.setSn(login.getParameter("sn").getValue());
                     wsdnsn.setToken(login.getParameter("access_token").getValue());
                     
                     wsdnsn.setKey(login.getParameter("key").getValue());
-                    wsdnsn.setId(login.getParameter("_id").getValue());
+                    wsdnsn.setId(login.getParameter("id").getValue());
                     wsdnsn.setConnection_time(System.currentTimeMillis());
                     wsdnsn.setLast_msg(wsdnsn.getConnection_time());
                     

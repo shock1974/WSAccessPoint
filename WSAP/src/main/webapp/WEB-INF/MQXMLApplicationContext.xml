@@ -78,6 +78,7 @@
         <constructor-arg ref="connectionInfo"></constructor-arg>
         <constructor-arg ref="msgParser"></constructor-arg>        
         <constructor-arg ref="delivingResultProducer"></constructor-arg>
+        <constructor-arg value="mall.inhand.com.cn"></constructor-arg>
     </bean>
     
     <bean id="connectionInfo" class="cn.com.inhand.devicenetworks.ap.websocket.ConnectionInfo"/>
