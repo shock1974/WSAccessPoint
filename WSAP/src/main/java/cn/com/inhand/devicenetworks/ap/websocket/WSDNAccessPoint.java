@@ -44,7 +44,7 @@ public class WSDNAccessPoint extends TextWebSocketHandler {
     private DNMsgProcessorInterface parser = null;
     private ConnectionInfo cinfo = null;
     private DelivingResultProducer producer = null;
-    private String server_addr = "mall.inhand.com.cn"
+    private String server_addr = "mall.inhand.com.cn";
 
     /**
      * 初始化
